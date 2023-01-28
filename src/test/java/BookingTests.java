@@ -8,6 +8,7 @@ import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.specification.AuthenticationSpecification;
 import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.*;
 
@@ -79,23 +80,53 @@ public class BookingTests {
     }
 
     @Test
-    public void  CreateBooking_WithValidData_returnOk(){
+    public void UpdateBooking_returnOk(){
 
         Booking test = booking;
         given().config(RestAssured.config().logConfig(logConfig().enableLoggingOfRequestAndResponseIfValidationFails()))
-                    .contentType(ContentType.JSON)
-                        .when()
-                        .body(booking)
-                        .post("/booking")
-                        .then()
-                        .body(matchesJsonSchemaInClasspath("createBookingRequestSchema.json"))
-                        .and()
-                        .assertThat()
-                        .statusCode(200)
-                        .contentType(ContentType.JSON).and().time(lessThan(2000L));
+                .contentType(ContentType.JSON)
+                .auth().preemptive().basic("admin", "password123")
+                .when()
+                .body(booking)
+                .put("/booking/" + faker.number().digits(2))
+                .then()
+                .assertThat()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .and()
+                .body(matchesJsonSchemaInClasspath("updateBookingRequestSchema.json"))
+                .and()
+                .time(lessThan(3000L))
+                .and()
+                .log().ifValidationFails();
+    }
+    @Test
+    public void DeleteBooking_retunrOk(){
+        Response response = request
+                .auth().preemptive().basic("admin", "password123")
+                .when()
+                .delete("/booking/" + faker.number().digits(2))
+                .then()
+                .extract()
+                .response();
 
-
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(201, response.statusCode());
 
     }
+    @Test
+    public void PingBooking_returnOk(){
+        Response response = request
+                .when()
+                .get("/ping")
+                .then()
+                .extract()
+                .response();
+
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(201, response.statusCode());
+    }
+
 
 }
